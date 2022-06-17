@@ -1,0 +1,31 @@
+# ignore images
+*.jpg
+*.png
+*.jpeg
+
+#ignore concreteness predictor 
+concreteness_predictor/Concreteness
+
+# ignore word embeddings 
+concreteness_predictor/word_embeddings/*
+
+# ignore brysbaert dataset
+concreteness_predictor/Concreteness_ratings_Brysbaert_et_al_BRM.txt
+
+# ignore image embeddings
+data/datasets/concept_properties/*
+data/datasets/feature_norms/*
+data/datasets/memory_color/*
+data/quantification/*
+data/concreteness/*
+
+# ignore output
+output/output_concept_properties/*
+output/output_memory_color/*
+output/output_feature_norms/*
+
+# ignore inter data
+preprocess/inter_data/*
+
+#ignore ngram counts
+models/ngram/noun2prop2count_ngram.p
