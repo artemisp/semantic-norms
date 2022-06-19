@@ -20,7 +20,7 @@ if args.model not in ['random', 'glove', 'ngram', 'bert', 'roberta', 'gpt2', 'gp
     exit(0)
 
 DATASET = args.dataset
-noun2prop = pickle.load(open(f'/nlp/data/yueyang/prototypicality/semantic_norms/semantic-norms/data/datasets/{DATASET}/noun2property/noun2prop.p', 'rb'))
+noun2prop = pickle.load(open(f'../data/datasets/{DATASET}/noun2property/noun2prop.p', 'rb'))
 
 if args.model == 'random':
     import random
@@ -63,12 +63,12 @@ elif args.model == 'clip':
 
 elif args.model == 'cem':
     from models.CEM.cem import CEM
-    noun2predicts = CLIP(DATASET).noun2predicts
+    noun2predicts = CEM(DATASET).noun2predicts
 
     pass
 elif args.model == 'cem-pred':
     from models.CEM.cem import CEM
-    noun2predicts = CLIP(DATASET, predicted_concreteness=True).noun2predicts
+    noun2predicts = CEM(DATASET, predicted_concreteness=True).noun2predicts
 
 if args.model in ['bert', 'roberta', 'vilt', 'gpt2']:
     for prompt, noun2predicts in prompt2noun2predicts.items():
