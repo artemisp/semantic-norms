@@ -8,15 +8,24 @@ import os
 DATASET = "concept_properties" # "feature_norms", "memory_colors"
 
 
-noun2prop = pickle.load(open(f"../data/datasets/{DATASET}/noun2property/noun2prop.p", "rb"))
-candidate_adjs = []
+class NGram():
+    def __init__(self, dataset):
+        noun2prop = pickle.load(open(f"../data/datasets/{dataset}/noun2property/noun2prop.p", "rb"))
+        candidate_adjs = []
 
-for noun, props in noun2prop.items():
-    candidate_adjs += props
-candidate_adjs = list(set(candidate_adjs))
-all_nouns = list(noun2prop.keys())
+        for noun, props in noun2prop.items():
+           candidate_adjs += props
+           candidate_adjs = list(set(candidate_adjs))
+        all_nouns = list(noun2prop.keys())
 
-noun2prop2count = pickle.load(open('noun2prop2count_ngram.p', 'rb'))
+        noun2prop2count = pickle.load(open('noun2prop2count_ngram.p', 'rb'))
+        noun2predicts = {}
+        for noun in tqdm(noun2prop):
+           predicts = [(prop, count) for prop, count in noun2prop2count[noun].items()]
+           predicts.sort(key=lambda x: x[0])
+           predicts.sort(key=lambda x: x[1], reverse=True)
+           noun2predicts[noun] = [pred[0] for pred in predicts]
+        self.noun2predicts = noun2predicts
 
 # all_zip = [f for f in os.listdir("/nlp/data/corpora/LDC/LDC2006T13/data/2gms/") if "gz" in f]
 # for file_name in tqdm(all_zip):
@@ -33,16 +42,3 @@ noun2prop2count = pickle.load(open('noun2prop2count_ngram.p', 'rb'))
 #                  noun2prop2count[token] = {context:int(count)}
 #             else: 
 #                 noun2prop2count[token][context] = int(count)
-
-noun2predicts = {}
-for noun, prop2coun in noun2prop2count.items():
-    predicts = [(prop, count) for prop, count in prop2coun.items()]
-    predicts.sort(key=lambda x: x[0])
-    predicts.sort(key=lambda x: x[1], reverse=True)
-    noun2predicts[noun] = [pred[0] for pred in predicts]
-
-acc_1 = eval.evaluate_acc(noun2predicts, noun2prop, 1, True)
-acc_5 = eval.evaluate_acc(noun2predicts, noun2prop, 5, True)
-r_5 = eval.evaluate_recall(noun2predicts, noun2prop, 5, True)
-r_10 = eval.evaluate_recall(noun2predicts, noun2prop, 10, True)
-mrr = eval.evaluate_rank(noun2predicts, noun2prop, True)

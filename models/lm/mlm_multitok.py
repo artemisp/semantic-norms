@@ -20,18 +20,20 @@ model_name = "roberta-large"
 # model_name = "bert-large-uncased"
 # model_name = "gpt2-large"
 
-if 'roberta' in model_name:
-	MASK = '<mask>'
-elif 'bert' in model_name:
-	MASK = '[MASK]'
-elif 'gpt' in model_name:
-	MASK = 'mask'
+
 
 class MLMScorer():
 	"""A LM scorer for the conditional probability of an ending given a prompt."""
 
 	def __init__(self, model_name):
 		self.model_name = model_name
+		if 'roberta' in model_name:
+			self.MASK = '<mask>'
+		elif 'bert' in model_name:
+			self.MASK = '[MASK]'
+		elif 'gpt' in model_name:
+			self.MASK = 'mask'
+		
 
 		if "roberta" in model_name:
 			self.model_type = "roberta"
@@ -64,7 +66,7 @@ class MLMScorer():
 		labels = self.tokenizer(orig_sentence, return_tensors="pt")["input_ids"]
 		if inputs[0].shape[0] != labels[0].shape[0]:
 			gap = abs(inputs[0].shape[0] - labels[0].shape[0])
-			mask_sentence = mask_sentence.replace(MASK, " ".join([MASK] * (gap + 1)))
+			mask_sentence = mask_sentence.replace(self.MASK, " ".join([self.MASK] * (gap + 1)))
 		return mask_sentence
 
 	def score_single(self, sentence):
@@ -103,7 +105,7 @@ class MLMScorer():
 		
 		if inputs["input_ids"][0].shape[0] != labels[0].shape[0]:
 			gap = abs(inputs["input_ids"][0].shape[0] - labels[0].shape[0])
-			mask_sentence = mask_sentence.replace(MASK, " ".join([MASK] * (gap + 1)))
+			mask_sentence = mask_sentence.replace(self.MASK, " ".join([self.MASK] * (gap + 1)))
 			inputs = self.tokenizer(mask_sentence, return_tensors="pt").to("cuda:0")
 
 		if 'gpt' in self.model_name:
@@ -144,50 +146,100 @@ class MLMScorer():
 			scores.append(np.mean(current_scores))
 		return scores
 
-def get_prompts(prompt_type):
+def get_prompts(prompt_type, dataset=DATASET):
 	noun2sent = {}
-	with open(f"../data/datasets/{DATASET}/queries/" + prompt_type + ".prop", "r") as f:
+	with open(f"../data/datasets/{dataset}/queries/" + prompt_type + ".prop", "r") as f:
 		for raw_data in f.readlines():
 			noun = raw_data.split(" :: ")[0]
 			sent = raw_data.split(" :: ")[1][:-1]
 			noun2sent[noun] = sent
 	return noun2sent
 
-if __name__ == "__main__":
-	LM = MLMScorer(model_name)
-	batch_size = 64
-	noun2prop = pickle.load(open(f"../data/datasets/{DATASET}/noun2property/noun2prop.p", "rb"))
-	candidate_adjs = []
-	for noun, props in noun2prop.items():
-		candidate_adjs += props
-	candidate_adjs = list(set(candidate_adjs))
+class LM():
+	def __init__(self, model_name, dataset):
+		if model_name == 'bert':
+			model_name = "bert-large-uncased"
+		elif model_name == 'roberta':
+			model_name = "roberta-large"
+		elif model_name == 'gpt2':
+			model_name = "gpt2-large"
+
+		LM = MLMScorer(model_name)
+		batch_size = 64
+		noun2prop = pickle.load(open(f"../data/datasets/{dataset}/noun2property/noun2prop.p", "rb"))
+		candidate_adjs = []
+		for noun, props in noun2prop.items():
+			candidate_adjs += props
+		candidate_adjs = list(set(candidate_adjs))
+		
+		prompt_types = ["plural_most", "singular_can_be", "singular_usually", "singular_generally", "singular", "plural_all", "plural_can_be", "plural_generally", "plural_some", "plural_usually", "plural"]
+		prompt2noun2predicts = {}
+		for pt in prompt_types:
+			print("Getting results for prompt: " + pt)
+			noun2sent = get_prompts(prompt_type = pt, dataset=dataset)
+			noun2predicts = {}
+			noun2scores = {}
+			for noun, sent in tqdm(noun2sent.items()):
+				noun2predicts[noun] = []
+				pairs = [(sent.replace('[MASK]', adj),sent.replace('[MASK]', self.MASK)) for adj in candidate_adjs]
+				if 'gpt' in model_name:
+					scores = [LM.score_masked(pair[0], pair[1]) for pair in pairs]
+					predicts = [(candidate_adjs[ind], float(scores[ind])) for ind in np.argsort(scores)]
+					predicts.sort(key=lambda x: x[0])
+					predicts.sort(key=lambda x: x[1])
+				else:
+					mask_sentences = [LM.get_multi_mask_sentence(pair[0], pair[1]) for pair in pairs]
+					orig_sentences = [pair[0] for pair in pairs]
+					iterations = len(mask_sentences) // batch_size
+					scores = []
+					for it in range(iterations + 1):
+						orig_sentences_batch = orig_sentences[it * batch_size : min((it + 1) * batch_size, len(mask_sentences))]
+						mask_sentences_batch = mask_sentences[it * batch_size : min((it + 1) * batch_size, len(mask_sentences))]
+						current_scores = LM.score_masked_batch(orig_sentences_batch, mask_sentences_batch)
+						scores += current_scores
+					predicts = [(candidate_adjs[ind], float(scores[ind])) for ind in np.argsort(scores)[::-1]]
+					predicts.sort(key=lambda x: x[0])
+					predicts.sort(key=lambda x: x[1], reverse=True)
+					noun2predicts[noun] = [pred[0] for pred in predicts]
+			prompt2noun2predicts[pt] = noun2predicts
+		self.prompt2noun2predicts = prompt2noun2predicts
+
+
+# if __name__ == "__main__":
+# 	LM = MLMScorer(model_name)
+# 	batch_size = 64
+# 	noun2prop = pickle.load(open(f"../data/datasets/{DATASET}/noun2property/noun2prop.p", "rb"))
+# 	candidate_adjs = []
+# 	for noun, props in noun2prop.items():
+# 		candidate_adjs += props
+# 	candidate_adjs = list(set(candidate_adjs))
 	
-	prompt_types = ["plural_most", "singular_can_be", "singular_usually", "singular_generally", "singular", "plural_all", "plural_can_be", "plural_generally", "plural_some", "plural_usually", "plural"]
-	for pt in prompt_types:
-		noun2sent = get_prompts(prompt_type = pt)
-		noun2predicts = {}
-		noun2scores = {}
-		for noun, sent in tqdm(noun2sent.items()):
-			noun2predicts[noun] = []
-			pairs = [(sent.replace('[MASK]', adj),sent.replace('[MASK]', MASK)) for adj in candidate_adjs]
-			if 'gpt' in model_name:
-				scores = [LM.score_masked(pair[0], pair[1]) for pair in pairs]
-				predicts = [(candidate_adjs[ind], float(scores[ind])) for ind in np.argsort(scores)]
-				predicts.sort(key=lambda x: x[0])
-				predicts.sort(key=lambda x: x[1])
-			else:
-				mask_sentences = [LM.get_multi_mask_sentence(pair[0], pair[1]) for pair in pairs]
-				orig_sentences = [pair[0] for pair in pairs]
-				iterations = len(mask_sentences) // batch_size
-				scores = []
-				for it in range(iterations + 1):
-					orig_sentences_batch = orig_sentences[it * batch_size : min((it + 1) * batch_size, len(mask_sentences))]
-					mask_sentences_batch = mask_sentences[it * batch_size : min((it + 1) * batch_size, len(mask_sentences))]
-					current_scores = LM.score_masked_batch(orig_sentences_batch, mask_sentences_batch)
-					scores += current_scores
-				predicts = [(candidate_adjs[ind], float(scores[ind])) for ind in np.argsort(scores)[::-1]]
-				predicts.sort(key=lambda x: x[0])
-				predicts.sort(key=lambda x: x[1], reverse=True)
-			noun2predicts[noun] = [pred[0] for pred in predicts]
-		print(pt)
-		pickle.dump(noun2predicts, open("/nlp/data/yueyang/prototypicality/clean/output/output_{}/{}+{}.p".format(DATASET, model_name, pt), "wb"))
+# 	prompt_types = ["plural_most", "singular_can_be", "singular_usually", "singular_generally", "singular", "plural_all", "plural_can_be", "plural_generally", "plural_some", "plural_usually", "plural"]
+# 	for pt in prompt_types:
+# 		noun2sent = get_prompts(prompt_type = pt)
+# 		noun2predicts = {}
+# 		noun2scores = {}
+# 		for noun, sent in tqdm(noun2sent.items()):
+# 			noun2predicts[noun] = []
+# 			pairs = [(sent.replace('[MASK]', adj),sent.replace('[MASK]', MASK)) for adj in candidate_adjs]
+# 			if 'gpt' in model_name:
+# 				scores = [LM.score_masked(pair[0], pair[1]) for pair in pairs]
+# 				predicts = [(candidate_adjs[ind], float(scores[ind])) for ind in np.argsort(scores)]
+# 				predicts.sort(key=lambda x: x[0])
+# 				predicts.sort(key=lambda x: x[1])
+# 			else:
+# 				mask_sentences = [LM.get_multi_mask_sentence(pair[0], pair[1]) for pair in pairs]
+# 				orig_sentences = [pair[0] for pair in pairs]
+# 				iterations = len(mask_sentences) // batch_size
+# 				scores = []
+# 				for it in range(iterations + 1):
+# 					orig_sentences_batch = orig_sentences[it * batch_size : min((it + 1) * batch_size, len(mask_sentences))]
+# 					mask_sentences_batch = mask_sentences[it * batch_size : min((it + 1) * batch_size, len(mask_sentences))]
+# 					current_scores = LM.score_masked_batch(orig_sentences_batch, mask_sentences_batch)
+# 					scores += current_scores
+# 				predicts = [(candidate_adjs[ind], float(scores[ind])) for ind in np.argsort(scores)[::-1]]
+# 				predicts.sort(key=lambda x: x[0])
+# 				predicts.sort(key=lambda x: x[1], reverse=True)
+# 			noun2predicts[noun] = [pred[0] for pred in predicts]
+# 		print(pt)
+# 		pickle.dump(noun2predicts, open("/nlp/data/yueyang/prototypicality/clean/output/output_{}/{}+{}.p".format(DATASET, model_name, pt), "wb"))
