@@ -18,13 +18,14 @@ model, preprocess = clip.load(clip_model_name, device=device)
 IMAGE_PATH = f"../data/datasets/{DATASET}/images/bing_images/"
 EMBED_PATH = f"../data/datasets/{DATASET}/images/image_embeddings/bing_embedding_b32/"
 
+
 def get_text_embeddings(sentences):
     with th.no_grad():
         text = clip.tokenize(sentences).to(device)
         encoded_text = model.encode_text(text)
     return encoded_text
 
-def get_image_features(noun, image_files, n):
+def get_image_features(noun, image_files, n, EMBED_PATH=EMBED_PATH):
     image_features = []
     for image_file in image_files:
         image_id = image_file.split('_')[1].split('.')[0]
@@ -54,7 +55,7 @@ def remove_ties(predictions):
             new_predictions.append((pred, score))
     return new_predictions
 
-def get_prediction(n_of_images, prompt):
+def get_prediction(n_of_images, prompt, resort=False, DATASET=DATASET, EMBED_PATH=EMBED_PATH):
     noun2prop = pickle.load(open(f"../data/datasets/{DATASET}/noun2property/noun2prop.p", "rb"))
     candidate_adjs = []
     for noun, props in noun2prop.items():
@@ -70,9 +71,12 @@ def get_prediction(n_of_images, prompt):
     noun2sorted_images = {}
     for noun in tqdm(all_nouns):
         image_files = os.listdir(IMAGE_PATH + noun)
-        sorted_image_files = sort_images(noun, image_files)
+        if resort:
+            sorted_image_files = sort_images(noun, image_files)
+        else:
+            sorted_image_files = pickle.load(open('../data/datasets/{DATASET}/images/noun2sorted_images.p', 'rb'))
         noun2sorted_images[noun] = sorted_image_files
-        image_features = get_image_features(noun, sorted_image_files, n_of_images)
+        image_features = get_image_features(noun, sorted_image_files, n_of_images, EMBED_PATH=EMBED_PATH)
 
         with th.no_grad():
             noun_features = model.encode_text(clip.tokenize("A photo of {}".format(noun)).to(device))
@@ -92,16 +96,25 @@ def get_prediction(n_of_images, prompt):
         predicts.sort(key=lambda x: x[1], reverse=False)
         clip_scores[noun] = predicts
         clip_predicts[noun] = [pred[0] for pred in predicts]
-    pickle.dump(noun2sorted_images, open("../../data/noun2sorted_images.p", "wb"))
+    # pickle.dump(noun2sorted_images, open("../../data/noun2sorted_images.p", "wb"))
     return clip_predicts, clip_scores
 
-if __name__ == "__main__":
-    noun2prop = pickle.load(open(f"../data/datasets/{DATASET}/noun2property/noun2prop.p", "rb"))
-    prompt = "An object with the property of {}."
-    noun2predicts, scores = get_prediction(n_of_images = 10, prompt=prompt)
-    acc_1 = eval.evaluate_acc(noun2predicts, noun2prop, 1, False)
-    acc_5 = eval.evaluate_acc(noun2predicts, noun2prop, 5, False)
-    r_5 = eval.evaluate_recall(noun2predicts, noun2prop, 5, False)
-    r_10 = eval.evaluate_recall(noun2predicts, noun2prop, 10, False)
-    mrr = eval.evaluate_rank(noun2predicts, noun2prop, False)[1]
-    print(prompt, " & ".join([str(round(100*acc_1,1)), str(round(100*r_5,1)), str(round(100*r_10,1)), str(round(mrr, 3))]), np.mean([acc_1, acc_5, r_5, r_10, mrr]))
+
+class CLIP():
+    def __init__(self, dataset, resort=False):
+        noun2prop = pickle.load(open(f"../data/datasets/{dataset}/noun2property/noun2prop.p", "rb"))
+        EMBED_PATH = f"../data/datasets/{dataset}/images/image_embeddings/bing_embedding_b32/"
+        prompt = "An object with the property of {}."
+        self.noun2predicts, scores = get_prediction(n_of_images = 10, prompt=prompt, resort=resort, DATASET=dataset, EMBED_PATH=EMBED_PATH)
+
+
+# if __name__ == "__main__":
+#     noun2prop = pickle.load(open(f"../data/datasets/{DATASET}/noun2property/noun2prop.p", "rb"))
+#     prompt = "An object with the property of {}."
+#     noun2predicts, scores = get_prediction(n_of_images = 10, prompt=prompt)
+#     acc_1 = eval.evaluate_acc(noun2predicts, noun2prop, 1, False)
+#     acc_5 = eval.evaluate_acc(noun2predicts, noun2prop, 5, False)
+#     r_5 = eval.evaluate_recall(noun2predicts, noun2prop, 5, False)
+#     r_10 = eval.evaluate_recall(noun2predicts, noun2prop, 10, False)
+#     mrr = eval.evaluate_rank(noun2predicts, noun2prop, False)[1]
+#     print(prompt, " & ".join([str(round(100*acc_1,1)), str(round(100*r_5,1)), str(round(100*r_10,1)), str(round(mrr, 3))]), np.mean([acc_1, acc_5, r_5, r_10, mrr]))

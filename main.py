@@ -40,22 +40,27 @@ elif args.model == 'ngram':
 
 elif args.model == 'bert':
     from models.lm.mlm_multitok import LM
-    prompt2noun2predicts = LM(args.model, DATASET)
+    prompt2noun2predicts = LM(args.model, DATASET).prompt2noun2predicts
 
 elif args.model == 'roberta':
     from models.lm.mlm_multitok import LM
-    prompt2noun2predicts = LM(args.model, DATASET)
+    prompt2noun2predicts = LM(args.model, DATASET).prompt2noun2predicts
 
 elif args.model == 'gpt2':
     from models.lm.mlm_multitok import LM
-    prompt2noun2predicts = LM(args.model, DATASET)
+    prompt2noun2predicts = LM(args.model, DATASET).prompt2noun2predicts
 
 elif args.model == 'gpt3':
-    pass
+    from models.GPT3.gpt3 import GPT3
+    noun2predicts = GPT3(DATASET).noun2predicts
 elif args.model == 'vilt':
+    from models.ViLT.vilt import ViLT
+    prompt2noun2predicts = ViLT(dataset=DATASET).prompt2noun2predicts
     pass
 elif args.model == 'clip':
-    pass
+    from models.CLIP.clip_openai import CLIP
+    noun2predicts = CLIP(DATASET).noun2predicts
+
 elif args.model == 'cem':
     pass
 elif args.model == 'cem-pred':
