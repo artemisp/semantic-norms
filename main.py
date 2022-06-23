@@ -25,7 +25,7 @@ noun2prop = pickle.load(open(f'../data/datasets/{DATASET}/noun2property/noun2pro
 if args.model == 'random':
     import random
     import numpy as np
-    all_props = list(set(np.array([v for v in noun2prop.values()]).flatten()))
+    all_props = list(set([v_ for v in noun2prop.values() for v_ in v ]))
     noun2predicts = {}
     for noun in noun2prop:
         noun2predicts[noun] = random.sample(all_props, len(all_props))

@@ -10,7 +10,7 @@ DATASET = "concept_properties" # "feature_norms", "memory_colors"
 
 class NGram():
     def __init__(self, dataset):
-        noun2prop = pickle.load(open(f"../data/datasets/{dataset}/noun2property/noun2prop.p", "rb"))
+        noun2prop = pickle.load(open(f"../../data/datasets/{dataset}/noun2property/noun2prop.p", "rb"))
         candidate_adjs = []
 
         for noun, props in noun2prop.items():

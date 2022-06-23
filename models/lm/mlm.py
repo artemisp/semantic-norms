@@ -15,7 +15,7 @@ DATASET = "concept_properties" # "feature_norms", "memory_colors"
 
 def get_prompts(prompt_type):
     noun2sent = {}
-    with open(f"../data/datasets/{DATASET}/queries" + prompt_type + ".prop", "r") as f:
+    with open(f"../../data/datasets/{DATASET}/queries" + prompt_type + ".prop", "r") as f:
         for raw_data in f.readlines():
             noun = raw_data.split(" :: ")[0]
             sent = raw_data.split(" :: ")[1][:-1]
@@ -31,7 +31,7 @@ def get_def(noun):
     return definition
 
 if __name__ == "__main__":
-    noun2prop = pickle.load(open(f"../data/datasets/{DATASET}/noun2property/noun2prop.p", "rb"))
+    noun2prop = pickle.load(open(f"../../data/datasets/{DATASET}/noun2property/noun2prop.p", "rb"))
     model_name = 'bert-large-uncased'
     unmasker = pipeline('fill-mask', model=model_name, device = 0)
 

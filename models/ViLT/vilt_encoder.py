@@ -9,11 +9,11 @@ from tqdm import tqdm
 
 DATASET = "concept_properties" # "feature_norms", "memory_colors"
 
-IMAGE_PATH = f"../data/datasets/{DATASET}/images/bing_images/"
-EMBED_PATH = f"../data/datasets/{DATASET}/images/image_embeddings/vilt_embedding/"
+IMAGE_PATH = f"../../data/datasets/{DATASET}/images/bing_images/"
+EMBED_PATH = f"../../data/datasets/{DATASET}/images/image_embeddings/vilt_embedding/"
 
 if __name__ == "__main__":
-    noun2prop = pickle.load(open(f"../data/datasets/{DATASET}/noun2property/noun2prop.p", "rb"))
+    noun2prop = pickle.load(open(f"../../data/datasets/{DATASET}/noun2property/noun2prop.p", "rb"))
     all_nouns = list(noun2prop.keys())
     image_encoder = ViltFeatureExtractor.from_pretrained("dandelin/vilt-b32-mlm")
 

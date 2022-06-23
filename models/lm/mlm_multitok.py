@@ -148,7 +148,7 @@ class MLMScorer():
 
 def get_prompts(prompt_type, dataset=DATASET):
 	noun2sent = {}
-	with open(f"../data/datasets/{dataset}/queries/" + prompt_type + ".prop", "r") as f:
+	with open(f"../../data/datasets/{dataset}/queries/" + prompt_type + ".prop", "r") as f:
 		for raw_data in f.readlines():
 			noun = raw_data.split(" :: ")[0]
 			sent = raw_data.split(" :: ")[1][:-1]
@@ -166,7 +166,7 @@ class LM():
 
 		LM = MLMScorer(model_name)
 		batch_size = 64
-		noun2prop = pickle.load(open(f"../data/datasets/{dataset}/noun2property/noun2prop.p", "rb"))
+		noun2prop = pickle.load(open(f"../../data/datasets/{dataset}/noun2property/noun2prop.p", "rb"))
 		candidate_adjs = []
 		for noun, props in noun2prop.items():
 			candidate_adjs += props
@@ -208,7 +208,7 @@ class LM():
 # if __name__ == "__main__":
 # 	LM = MLMScorer(model_name)
 # 	batch_size = 64
-# 	noun2prop = pickle.load(open(f"../data/datasets/{DATASET}/noun2property/noun2prop.p", "rb"))
+# 	noun2prop = pickle.load(open(f"../../data/datasets/{DATASET}/noun2property/noun2prop.p", "rb"))
 # 	candidate_adjs = []
 # 	for noun, props in noun2prop.items():
 # 		candidate_adjs += props

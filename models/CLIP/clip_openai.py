@@ -15,8 +15,8 @@ device = "cuda" if th.cuda.is_available() else "cpu"
 # clip_model_name = "ViT-L/14"
 clip_model_name = "ViT-B/32"
 model, preprocess = clip.load(clip_model_name, device=device)
-IMAGE_PATH = f"../data/datasets/{DATASET}/images/bing_images/"
-EMBED_PATH = f"../data/datasets/{DATASET}/images/image_embeddings/bing_embedding_b32/"
+IMAGE_PATH = f"../../datasets/{DATASET}/images/bing_images/"
+EMBED_PATH = f"../../data/datasets/{DATASET}/images/image_embeddings/bing_embedding_b32/"
 
 
 def get_text_embeddings(sentences):
@@ -56,7 +56,7 @@ def remove_ties(predictions):
     return new_predictions
 
 def get_prediction(n_of_images, prompt, resort=False, DATASET=DATASET, EMBED_PATH=EMBED_PATH):
-    noun2prop = pickle.load(open(f"../data/datasets/{DATASET}/noun2property/noun2prop.p", "rb"))
+    noun2prop = pickle.load(open(f"../../data/datasets/{DATASET}/noun2property/noun2prop.p", "rb"))
     candidate_adjs = []
     for noun, props in noun2prop.items():
         candidate_adjs += props
@@ -74,7 +74,7 @@ def get_prediction(n_of_images, prompt, resort=False, DATASET=DATASET, EMBED_PAT
         if resort:
             sorted_image_files = sort_images(noun, image_files)
         else:
-            sorted_image_files = pickle.load(open('../data/datasets/{DATASET}/images/noun2sorted_images.p', 'rb'))
+            sorted_image_files = pickle.load(open('../../data/datasets/{DATASET}/images/noun2sorted_images.p', 'rb'))
         noun2sorted_images[noun] = sorted_image_files
         image_features = get_image_features(noun, sorted_image_files, n_of_images, EMBED_PATH=EMBED_PATH)
 
@@ -102,8 +102,8 @@ def get_prediction(n_of_images, prompt, resort=False, DATASET=DATASET, EMBED_PAT
 
 class CLIP():
     def __init__(self, dataset, resort=False):
-        noun2prop = pickle.load(open(f"../data/datasets/{dataset}/noun2property/noun2prop.p", "rb"))
-        EMBED_PATH = f"../data/datasets/{dataset}/images/image_embeddings/bing_embedding_b32/"
+        noun2prop = pickle.load(open(f"../../data/datasets/{dataset}/noun2property/noun2prop.p", "rb"))
+        EMBED_PATH = f"../../data/datasets/{dataset}/images/image_embeddings/bing_embedding_b32/"
         prompt = "An object with the property of {}."
         self.noun2predicts, scores = get_prediction(n_of_images = 10, prompt=prompt, resort=resort, DATASET=dataset, EMBED_PATH=EMBED_PATH)
 

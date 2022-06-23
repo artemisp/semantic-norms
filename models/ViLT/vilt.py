@@ -11,8 +11,8 @@ import numpy as np
 
 DATASET = "concept_properties" # "feature_norms", "memory_colors"
 
-IMAGE_PATH = f"../data/datasets/{DATASET}/images/bing_images/"
-EMBED_PATH = f"../data/datasets/{DATASET}/images/image_embeddings/vilt_embedding/"
+IMAGE_PATH = f"../../data/datasets/{DATASET}/images/bing_images/"
+EMBED_PATH = f"../../data/datasets/{DATASET}/images/image_embeddings/vilt_embedding/"
 MASK = '[MASK]'
 
 class ViLTScorer():
@@ -64,7 +64,7 @@ class ViLTScorer():
     
 def get_prompts(prompt_type, DATASET=DATASET):
 	noun2sent = {}
-	with open(f"../data/datasets/{DATASET}/queries" + prompt_type + ".prop", "r") as f:
+	with open(f"../../data/datasets/{DATASET}/queries" + prompt_type + ".prop", "r") as f:
 		for raw_data in f.readlines():
 			noun = raw_data.split(" :: ")[0]
 			sent = raw_data.split(" :: ")[1][:-1]
@@ -82,11 +82,11 @@ def tile(a, dim, n_tile):
 class ViLT():
     def __init__(self, dataset):
         MLM = ViLTScorer()
-        IMAGE_PATH = f"../data/datasets/{dataset}/images/bing_images/"
-        EMBED_PATH = f"../data/datasets/{dataset}/images/image_embeddings/vilt_embedding/"
+        IMAGE_PATH = f"../../data/datasets/{dataset}/images/bing_images/"
+        EMBED_PATH = f"../../data/datasets/{dataset}/images/image_embeddings/vilt_embedding/"
         batch_size = 64
-        noun2prop = pickle.load(open(f"../data/datasets/{dataset}/noun2property/noun2prop.p", "rb"))
-        noun2sorted_images = pickle.load(open(f"../data/datasets/{dataset}/images/noun2sorted_images.p", "rb")) 
+        noun2prop = pickle.load(open(f"../../data/datasets/{dataset}/noun2property/noun2prop.p", "rb"))
+        noun2sorted_images = pickle.load(open(f"../../data/datasets/{dataset}/images/noun2sorted_images.p", "rb")) 
         candidate_adjs = []
         for noun, props in noun2prop.items():
             candidate_adjs += props
@@ -143,8 +143,8 @@ class ViLT():
 # if __name__ == "__main__":
 #     MLM = ViLTScorer()
 #     batch_size = 64
-#     noun2prop = pickle.load(open(f"../data/datasets/{DATASET}/noun2property/noun2prop.p", "rb"))
-#     noun2sorted_images = pickle.load(open(f"../data/datasets/{DATASET}/images/noun2sorted_images.p", "rb")) 
+#     noun2prop = pickle.load(open(f"../../data/datasets/{DATASET}/noun2property/noun2prop.p", "rb"))
+#     noun2sorted_images = pickle.load(open(f"../../data/datasets/{DATASET}/images/noun2sorted_images.p", "rb")) 
 #     candidate_adjs = []
 #     for noun, props in noun2prop.items():
 #         candidate_adjs += props
