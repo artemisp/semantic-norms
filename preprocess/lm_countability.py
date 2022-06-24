@@ -2,7 +2,6 @@ import pickle
 import numpy as np
 from tqdm import tqdm
 import os
-os.environ['TRANSFORMERS_CACHE'] = '/nlp/data/yueyang/packages/huggingface/'
 from transformers import pipeline
 
 def main():

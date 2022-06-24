@@ -7,5 +7,3 @@ sentence_transformers==2.2.0
 torch==1.12.0.dev20220411
 tqdm==4.62.3
 transformers==4.11.3
-
-zip -r /nlp/data/yueyang/prototypicality/semantic_norms/semantic-norms/data_no_im.zip /nlp/data/yueyang/prototypicality/semantic_norms/semantic-norms/data -x /nlp/data/yueyang/prototypicality/semantic_norms/semantic-norms/data/datasets/concept_properties/images/bing_images/**\* -x /nlp/data/yueyang/prototypicality/semantic_norms/semantic-norms/data/datasets/feature_norms/images/bing_images/**\* -x  /nlp/data/yueyang/prototypicality/semantic_norms/semantic-norms/data/datasets/memory_color/images/bing_images/**\* -x \*.zip

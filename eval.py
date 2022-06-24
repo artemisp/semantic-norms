@@ -1,7 +1,6 @@
 import pickle
 import sys
 import numpy as np
-word2concretness = pickle.load(open("/nlp/data/yueyang/prototypicality/MRD/data/word2concreteness.M.p", "rb"))
 
 def evaluate_recall(noun2predicts, noun2prop, K, PRINT):
     results = []
@@ -9,6 +8,8 @@ def evaluate_recall(noun2predicts, noun2prop, K, PRINT):
     for noun in nouns:
         predicts = noun2predicts[noun]
         correct = 0
+        if len(noun2prop[noun]) == 0:
+            continue
         for pred in predicts[:K]:
             if pred in noun2prop[noun]:
                 correct += 1
@@ -59,11 +60,5 @@ def evaluate_rank(noun2predicts, noun2prop, PRINT):
             rrs.append(1 / (predicts.index(prop) + 1))
             rs.append(predicts.index(prop) + 1)
     if PRINT:
-        print("MRR: {}\nMedian rank: {}\nMean rank: {}\n".format(np.mean(rrs), np.mean(rs), np.median(rs)))
+        print("MRR: {}\nMean rank: {}\nMedian rank: {}\n".format(np.mean(rrs), np.mean(rs), np.median(rs)))
     return results
-
-if __name__ == "__main__":
-    predict_file = sys.argv[1]
-    noun2predicts = pickle.load(open(predict_file, "rb"))
-    noun2prop = pickle.load(open("/nlp/data/yueyang/prototypicality/MRD/data/MRD/MRD_noun2prop.p", "rb"))
-    evaluate_acc(noun2predicts, noun2prop)

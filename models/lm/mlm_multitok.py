@@ -12,7 +12,10 @@ from transformers import BertTokenizer, BertForMaskedLM
 from transformers import RobertaTokenizer, RobertaForMaskedLM
 from transformers import GPT2Tokenizer, GPT2LMHeadModel
 
-cache_dir = os.environ['TRANSFORMERS_CACHE']
+try:	
+	cache_dir = os.environ['TRANSFORMERS_CACHE']
+except:
+	cache_dir = '.'
 
 DATASET = "concept_properties" # "feature_norms", "memory_colors"
 
@@ -148,7 +151,7 @@ class MLMScorer():
 
 def get_prompts(prompt_type, dataset=DATASET):
 	noun2sent = {}
-	with open(f"../../data/datasets/{dataset}/queries/" + prompt_type + ".prop", "r") as f:
+	with open(f"data/datasets/{dataset}/queries/" + prompt_type + ".prop", "r") as f:
 		for raw_data in f.readlines():
 			noun = raw_data.split(" :: ")[0]
 			sent = raw_data.split(" :: ")[1][:-1]
@@ -166,7 +169,7 @@ class LM():
 
 		LM = MLMScorer(model_name)
 		batch_size = 64
-		noun2prop = pickle.load(open(f"../../data/datasets/{dataset}/noun2property/noun2prop.p", "rb"))
+		noun2prop = pickle.load(open(f"data/datasets/{dataset}/noun2property/noun2prop.p", "rb"))
 		candidate_adjs = []
 		for noun, props in noun2prop.items():
 			candidate_adjs += props
@@ -181,7 +184,7 @@ class LM():
 			noun2scores = {}
 			for noun, sent in tqdm(noun2sent.items()):
 				noun2predicts[noun] = []
-				pairs = [(sent.replace('[MASK]', adj),sent.replace('[MASK]', self.MASK)) for adj in candidate_adjs]
+				pairs = [(sent.replace('[MASK]', adj),sent.replace('[MASK]', LM.MASK)) for adj in candidate_adjs]
 				if 'gpt' in model_name:
 					scores = [LM.score_masked(pair[0], pair[1]) for pair in pairs]
 					predicts = [(candidate_adjs[ind], float(scores[ind])) for ind in np.argsort(scores)]
@@ -200,46 +203,6 @@ class LM():
 					predicts = [(candidate_adjs[ind], float(scores[ind])) for ind in np.argsort(scores)[::-1]]
 					predicts.sort(key=lambda x: x[0])
 					predicts.sort(key=lambda x: x[1], reverse=True)
-					noun2predicts[noun] = [pred[0] for pred in predicts]
+				noun2predicts[noun] = [pred[0] for pred in predicts]
 			prompt2noun2predicts[pt] = noun2predicts
 		self.prompt2noun2predicts = prompt2noun2predicts
-
-
-# if __name__ == "__main__":
-# 	LM = MLMScorer(model_name)
-# 	batch_size = 64
-# 	noun2prop = pickle.load(open(f"../../data/datasets/{DATASET}/noun2property/noun2prop.p", "rb"))
-# 	candidate_adjs = []
-# 	for noun, props in noun2prop.items():
-# 		candidate_adjs += props
-# 	candidate_adjs = list(set(candidate_adjs))
-	
-# 	prompt_types = ["plural_most", "singular_can_be", "singular_usually", "singular_generally", "singular", "plural_all", "plural_can_be", "plural_generally", "plural_some", "plural_usually", "plural"]
-# 	for pt in prompt_types:
-# 		noun2sent = get_prompts(prompt_type = pt)
-# 		noun2predicts = {}
-# 		noun2scores = {}
-# 		for noun, sent in tqdm(noun2sent.items()):
-# 			noun2predicts[noun] = []
-# 			pairs = [(sent.replace('[MASK]', adj),sent.replace('[MASK]', MASK)) for adj in candidate_adjs]
-# 			if 'gpt' in model_name:
-# 				scores = [LM.score_masked(pair[0], pair[1]) for pair in pairs]
-# 				predicts = [(candidate_adjs[ind], float(scores[ind])) for ind in np.argsort(scores)]
-# 				predicts.sort(key=lambda x: x[0])
-# 				predicts.sort(key=lambda x: x[1])
-# 			else:
-# 				mask_sentences = [LM.get_multi_mask_sentence(pair[0], pair[1]) for pair in pairs]
-# 				orig_sentences = [pair[0] for pair in pairs]
-# 				iterations = len(mask_sentences) // batch_size
-# 				scores = []
-# 				for it in range(iterations + 1):
-# 					orig_sentences_batch = orig_sentences[it * batch_size : min((it + 1) * batch_size, len(mask_sentences))]
-# 					mask_sentences_batch = mask_sentences[it * batch_size : min((it + 1) * batch_size, len(mask_sentences))]
-# 					current_scores = LM.score_masked_batch(orig_sentences_batch, mask_sentences_batch)
-# 					scores += current_scores
-# 				predicts = [(candidate_adjs[ind], float(scores[ind])) for ind in np.argsort(scores)[::-1]]
-# 				predicts.sort(key=lambda x: x[0])
-# 				predicts.sort(key=lambda x: x[1], reverse=True)
-# 			noun2predicts[noun] = [pred[0] for pred in predicts]
-# 		print(pt)
-# 		pickle.dump(noun2predicts, open("/nlp/data/yueyang/prototypicality/clean/output/output_{}/{}+{}.p".format(DATASET, model_name, pt), "wb"))

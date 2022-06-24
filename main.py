@@ -6,13 +6,13 @@ import eval
 
 
 parser = argparse.ArgumentParser(description='Provide the dataset and model on which you want to run the experiments on.')
-parser.add_argument('--dataset',type=str, default='feature_norms', help='Options: concept_properties, feature_norms, memory_colors')
+parser.add_argument('--dataset',type=str, default='feature_norms', help='Options: concept_properties, feature_norms, memory_color')
 parser.add_argument('--model', type=str, default='roberta', help='Options: random, glove, ngram, bert, roberta, gpt2, gpt3, vilt, clip, cem, cem-pred')
 
 args = parser.parse_args()
 
-if args.dataset not in ['concept_properties', 'feature_norms', 'memory_colors']:
-    print("DATASET not recognized. Select one of: concept_properties, feature_norms, or memory_colors")
+if args.dataset not in ['concept_properties', 'feature_norms', 'memory_color']:
+    print("DATASET not recognized. Select one of: concept_properties, feature_norms, or memory_color")
     exit(0)
 
 if args.model not in ['random', 'glove', 'ngram', 'bert', 'roberta', 'gpt2', 'gpt3', 'vilt', 'clip', 'cem', 'cem-pred']:
@@ -20,7 +20,7 @@ if args.model not in ['random', 'glove', 'ngram', 'bert', 'roberta', 'gpt2', 'gp
     exit(0)
 
 DATASET = args.dataset
-noun2prop = pickle.load(open(f'../data/datasets/{DATASET}/noun2property/noun2prop.p', 'rb'))
+noun2prop = pickle.load(open('data/datasets/{}/noun2property/noun2prop{}.p'.format(DATASET, '_test' if DATASET=='concept_properties' else ''), 'rb'))
 
 if args.model == 'random':
     import random
@@ -74,12 +74,16 @@ if args.model in ['bert', 'roberta', 'vilt', 'gpt2']:
     for prompt, noun2predicts in prompt2noun2predicts.items():
         print(prompt)
         acc_1 = eval.evaluate_acc(noun2predicts, noun2prop, 1, True)
+        acc_2 = eval.evaluate_acc(noun2predicts, noun2prop, 2, True)
+        acc_3 = eval.evaluate_acc(noun2predicts, noun2prop, 3, True)
         acc_5 = eval.evaluate_acc(noun2predicts, noun2prop, 5, True)
         r_5 = eval.evaluate_recall(noun2predicts, noun2prop, 5, True)
         r_10 = eval.evaluate_recall(noun2predicts, noun2prop, 10, True)
         mrr = eval.evaluate_rank(noun2predicts, noun2prop, True)
 else:
     acc_1 = eval.evaluate_acc(noun2predicts, noun2prop, 1, True)
+    acc_2 = eval.evaluate_acc(noun2predicts, noun2prop, 2, True)
+    acc_3 = eval.evaluate_acc(noun2predicts, noun2prop, 3, True)
     acc_5 = eval.evaluate_acc(noun2predicts, noun2prop, 5, True)
     r_5 = eval.evaluate_recall(noun2predicts, noun2prop, 5, True)
     r_10 = eval.evaluate_recall(noun2predicts, noun2prop, 10, True)

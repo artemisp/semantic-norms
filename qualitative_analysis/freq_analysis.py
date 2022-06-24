@@ -1,8 +1,29 @@
 import pickle 
 import random
 import numpy as np
+from collections import defaultdict
+import gzip
 
-for dataset in ['concept_properties', 'feature_norms']:
+def load_freq_counts(frequency_fn="/nlp/data/corpora/LDC/LDC2006T13/data/1gms/vocab.gz"):                     
+
+        with gzip.open(frequency_fn) as f:
+                bytecontents = f.read()
+        contents = bytecontents.decode("utf-8")
+        contents = contents.split("\n")
+        freq_counts = defaultdict(int) 
+
+        for tokencount in contents:
+                s = tokencount.strip().split("\t")
+                if len(s) == 2:
+                        token, count = s
+                        freq_counts[token] = int(count)
+
+        return freq_counts
+
+freq_counts = load_freq_counts()
+
+
+for dataset in ['feature_norms']:
     noun2sorted_images = pickle.load(open(f'../data/datasets/{dataset}/images/noun2sorted_images.p', 'rb'))
     noun2prop = pickle.load(open('../data/datasets/{}/noun2property/noun2prop{}.p'.format(dataset, '_test' if dataset == 'concept_properties' else ''), "rb"))
     gpt3_predicts = pickle.load(open(f'../output/output_{dataset}/gpt3_predicts.p', "rb"))
@@ -16,20 +37,15 @@ for dataset in ['concept_properties', 'feature_norms']:
 
     model2predicts = { "RoBERTa": roberta_predicts,"CLIP": clip_predicts, "CEM": combined_predicts, "CEM-Pred": pred_combined_predicts, "GPT-3 ": gpt3_predicts}
 
-    objects = random.sample(noun2prop.keys(), 20)
-    print(f"{dataset}")
-    for object in objects:
-        if object not in noun2sorted_images:
-            continue
-        out = "\\multirow{4}{*}{"+object+"} & \\multirow{4}{*}\{\\cincludegraphics[width=1.8cm]{"+noun2sorted_images[object][0]+"}"
-        for model, predicts in model2predicts.items():
-            if model.lower() == 'roberta':
-                model_ = f'& {model}'
-            else:
-                model_ = f'& & {model}'
-            if model.lower() in ['clip']:
-                 out+=f"{model_} {','.join([p[0] for p in predicts[object][:5]])} \\\\ \n"
-            else:
-                out+=f"{model_} {','.join(predicts[object][:5])} \\\\ \n"
-        print(out)
-
+    noun2prop2count = pickle.load(open('/nlp/data/yueyang/prototypicality/semantic_norms/semantic-norms/models/ngram/noun2prop2count_ngram_.p', 'rb'))
+    for model, predicts in model2predicts.items():
+        model_1 = []
+        model_2 = []
+        print(model)
+        for noun, pred in predicts.items():
+            for p in pred[:5]:
+                model_1.append(freq_counts[p])
+                model_2.append(noun2prop2count[noun][p] if p in noun2prop2count[noun] else 0)
+        print(np.mean(model_1))
+        print(np.mean(model_2))
+    continue

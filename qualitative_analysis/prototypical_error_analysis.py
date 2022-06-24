@@ -1,7 +1,7 @@
 import pickle
 import numpy as np
 import sys
-sys.path.append('../..')
+sys.path.append('..')
 import eval
 import random 
 from collections import Counter
@@ -45,30 +45,29 @@ for noun in noun2prop.keys():
 
 
 
-print("Prototypical Concreteness")
-prototypical_concreteness = []
-prototypical_props = []
-for _, props in prototypical_noun2prop.items():
-    for p in props:
-        if p not in prototypical_props:
-            prototypical_props.append(p)
-            prototypical_concreteness.append(prop2conc[p])
-print(f"Mean:{np.mean(prototypical_concreteness)} Median:{np.median(prototypical_concreteness)},  Variance: {np.std(prototypical_concreteness)}")
+# print("Prototypical Concreteness")
+# prototypical_concreteness = []
+# prototypical_props = []
+# for _, props in prototypical_noun2prop.items():
+#     for p in props:
+#         if p not in prototypical_props:
+#             prototypical_props.append(p)
+#             prototypical_concreteness.append(prop2conc[p])
+# print(f"Mean:{np.mean(prototypical_concreteness)} Median:{np.median(prototypical_concreteness)},  Variance: {np.std(prototypical_concreteness)}")
 
 
 
-print("Non Prototypical Concreteness")
-non_prototypical_concreteness = []
-non_prototypical_props = []
-for _, props in non_prototypical_noun2prop.items():
-    for p in props: 
-        if p not in non_prototypical_props:
-            non_prototypical_props.append(p)
-            non_prototypical_concreteness.append(prop2conc[p])
-print(f"Mean:{np.mean(non_prototypical_concreteness)} Median:{np.median(non_prototypical_concreteness)}, Variance: {np.std(non_prototypical_concreteness)}")
+# print("Non Prototypical Concreteness")
+# non_prototypical_concreteness = []
+# non_prototypical_props = []
+# for _, props in non_prototypical_noun2prop.items():
+#     for p in props: 
+#         if p not in non_prototypical_props:
+#             non_prototypical_props.append(p)
+#             non_prototypical_concreteness.append(prop2conc[p])
+# print(f"Mean:{np.mean(non_prototypical_concreteness)} Median:{np.median(non_prototypical_concreteness)}, Variance: {np.std(non_prototypical_concreteness)}")
 
 dataset='feature_norms'
-noun2sorted_images = pickle.load(open(f'../data/datasets/{dataset}/images/noun2sorted_images.p', 'rb'))
 noun2prop = pickle.load(open('../data/datasets/{}/noun2property/noun2prop{}.p'.format(dataset, '_test' if dataset == 'concept_properties' else ''), "rb"))
 gpt3_predicts = pickle.load(open(f'../output/output_{dataset}/gpt3_predicts.p', "rb"))
 roberta_predicts = pickle.load(open(f'../output/output_{dataset}/roberta-large+singular_generally.p', "rb"))
@@ -76,9 +75,11 @@ bert_predicts = pickle.load(open(f'../output/output_{dataset}/bert-large-uncased
 gpt_predicts = pickle.load(open(f'../output/output_{dataset}/gpt2-large+plural_most.p', "rb"))
 vilt_predicts = pickle.load(open(f'../output/output_{dataset}/vilt+plural+10.p', "rb"))
 clip_predicts = pickle.load(open(f'../output/output_{dataset}/clip_scores.p', "rb"))
-combined_predicts = pickle.load(open(f'../output/output_{dataset}/combine_predicts.p', "rb"))
+combined_predicts = pickle.load(open(f'../output/output_{dataset}/combine_scores.p', "rb"))
 glove_predicts = pickle.load(open(f'../output/output_{dataset}/glove_noun2predicts.p', 'rb'))
 random_predicts = {noun:random.sample(list(all_prop), len(all_prop)) for noun in noun2prop.keys()}
+pred_combined_predicts = pickle.load(open(f'../output/output_{dataset}/pred_combined_scores.p', "rb"))
+
 
 ngram_noun2predicts = {}
 for noun, prop2coun in noun2prop2count.items():
@@ -88,8 +89,9 @@ for noun, prop2coun in noun2prop2count.items():
     predicts.sort(key=lambda x: x[1], reverse=True)
     ngram_noun2predicts[noun] = [pred[0] for pred in predicts]
 
-model2predicts = {"random": random_predicts, "glove": glove_predicts, "ngram": ngram_noun2predicts, "bert": bert_predicts, "roberta": roberta_predicts, "gtp2": gpt_predicts, "gpt3": gpt3_predicts, "vilt": vilt_predicts, "clip": clip_predicts, "cem": combined_predicts}
-   
+model2predicts = {"random": random_predicts, "glove": glove_predicts, "ngram": ngram_noun2predicts, "bert": bert_predicts, "roberta": roberta_predicts, "gtp2": gpt_predicts, "gpt3": gpt3_predicts, "vilt": vilt_predicts, "clip": clip_predicts, "cem": combined_predicts, 'cem-pred': pred_combined_predicts}
+model2predicts = {'cem-pred': pred_combined_predicts}
+
 
 for model, noun2predicts in model2predicts.items():
     print(model)
