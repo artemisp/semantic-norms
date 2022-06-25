@@ -88,3 +88,5 @@ else:
     r_5 = eval.evaluate_recall(noun2predicts, noun2prop, 5, True)
     r_10 = eval.evaluate_recall(noun2predicts, noun2prop, 10, True)
     mrr = eval.evaluate_rank(noun2predicts, noun2prop, True)
+
+from pdb import set_trace; set_trace()
