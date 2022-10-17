@@ -11,8 +11,8 @@ import numpy as np
 
 DATASET = "concept_properties" # "feature_norms", "memory_colors"
 
-IMAGE_PATH = f"../../data/datasets/{DATASET}/images/bing_images/"
-EMBED_PATH = f"../../data/datasets/{DATASET}/images/image_embeddings/vilt_embedding/"
+IMAGE_PATH = f"data/datasets/{DATASET}/images/bing_images/"
+EMBED_PATH = f"data/datasets/{DATASET}/images/image_embeddings/vilt_embedding/"
 MASK = '[MASK]'
 
 class ViLTScorer():
@@ -64,7 +64,7 @@ class ViLTScorer():
     
 def get_prompts(prompt_type, DATASET=DATASET):
 	noun2sent = {}
-	with open(f"../../data/datasets/{DATASET}/queries" + prompt_type + ".prop", "r") as f:
+	with open(f"data/datasets/{DATASET}/queries/" + prompt_type + ".prop", "r") as f:
 		for raw_data in f.readlines():
 			noun = raw_data.split(" :: ")[0]
 			sent = raw_data.split(" :: ")[1][:-1]
@@ -80,18 +80,40 @@ def tile(a, dim, n_tile):
     return torch.index_select(a, dim, order_index)
 
 class ViLT():
-    def __init__(self, dataset):
+    def __init__(self, dataset, test=None):
         MLM = ViLTScorer()
-        IMAGE_PATH = f"../../data/datasets/{dataset}/images/bing_images/"
-        EMBED_PATH = f"../../data/datasets/{dataset}/images/image_embeddings/vilt_embedding/"
+        IMAGE_PATH = f"data/datasets/{dataset}/images/bing_images/"
+        EMBED_PATH = f"data/datasets/{dataset}/images/image_embeddings/vilt_embedding/"
         batch_size = 64
-        noun2prop = pickle.load(open(f"../../data/datasets/{dataset}/noun2property/noun2prop.p", "rb"))
-        noun2sorted_images = pickle.load(open(f"../../data/datasets/{dataset}/images/noun2sorted_images.p", "rb")) 
+        if dataset == 'concept_properties' and test:
+             noun2prop = pickle.load(open(f"data/datasets/{dataset}/noun2property/noun2prop_test.p", "rb"))
+        else:
+            noun2prop = pickle.load(open(f"data/datasets/{dataset}/noun2property/noun2prop.p", "rb"))
+        noun2sorted_images = pickle.load(open(f"data/datasets/{dataset}/images/noun2sorted_images.p", "rb")) 
         candidate_adjs = []
         for noun, props in noun2prop.items():
             candidate_adjs += props
         candidate_adjs = list(set(candidate_adjs))
         n_of_images = 10
+        
+        noun2image_features = {}
+        for noun,_ in noun2prop.items():
+            image_files = noun2sorted_images[noun]
+            if n_of_images == 0:
+                imarray = np.random.rand(224,224,3) * 255
+                image = Image.fromarray(imarray.astype('uint8')).convert('RGB')
+                image_features = [MLM.image_encoder(image, return_tensors="pt")]
+            else:
+                image_features = []
+                for image_file in image_files:
+                    if len(image_features) == n_of_images:
+                        break
+                    try:
+                        image_id = image_file.split('_')[1].split('.')[0]
+                        image_features.append(pickle.load(open(EMBED_PATH + noun + "_" + image_id + ".p", "rb")))
+                    except:
+                        continue
+            noun2image_features[noun] = image_features
         
         prompt_types = ["plural_most", "singular_can_be", "singular_usually", "singular_generally", "singular", "plural_all", "plural_can_be", "plural_generally", "plural_some", "plural_usually", "plural"]
         prompt2noun2predicts = {}
@@ -99,28 +121,30 @@ class ViLT():
             print("Getting results for prompt: " + pt)
             noun2sent = get_prompts(prompt_type = pt, DATASET=dataset)
             noun2predicts = {noun: [] for noun in noun2prop}
-            for noun, sent in tqdm(noun2sent.items()):
+            for noun, prop in tqdm(noun2prop.items()):
+                sent = noun2sent[noun]
                 noun2predicts[noun] = []
                 pairs = [(sent.replace('[MASK]', adj),sent.replace('[MASK]', MASK)) for adj in candidate_adjs]
                 mask_sentences = [MLM.get_multi_mask_sentence(pair[0], pair[1]) for pair in pairs]
                 orig_sentences = [pair[0] for pair in pairs]
                 iterations = len(mask_sentences) // batch_size
+                # image_files = noun2sorted_images[noun]
+                image_features = noun2image_features[noun]
                 
-                image_files = noun2sorted_images[noun]
-                if n_of_images == 0:
-                    imarray = np.random.rand(224,224,3) * 255
-                    image = Image.fromarray(imarray.astype('uint8')).convert('RGB')
-                    image_features = [MLM.image_encoder(image, return_tensors="pt")]
-                else:
-                    image_features = []
-                    for image_file in image_files:
-                        if len(image_features) == n_of_images:
-                            break
-                        try:
-                            image_id = image_file.split('_')[1].split('.')[0]
-                            image_features.append(pickle.load(open(EMBED_PATH + noun + "_" + image_id + ".p", "rb")))
-                        except:
-                            continue
+                # if n_of_images == 0:
+                #     imarray = np.random.rand(224,224,3) * 255
+                #     image = Image.fromarray(imarray.astype('uint8')).convert('RGB')
+                #     image_features = [MLM.image_encoder(image, return_tensors="pt")]
+                # else:
+                #     image_features = []
+                #     for image_file in image_files:
+                #         if len(image_features) == n_of_images:
+                #             break
+                #         try:
+                #             image_id = image_file.split('_')[1].split('.')[0]
+                #             image_features.append(pickle.load(open(EMBED_PATH + noun + "_" + image_id + ".p", "rb")))
+                #         except:
+                #             continue
                 
                 all_image_scores = []
                 for image_feature in image_features:
@@ -130,7 +154,7 @@ class ViLT():
                         mask_sentences_batch = mask_sentences[it * batch_size : min((it + 1) * batch_size, len(mask_sentences))]
                         current_scores = MLM.score_masked_batch(orig_sentences_batch, mask_sentences_batch, image_feature)
                         scores += current_scores
-                        all_image_scores.append(scores)
+                    all_image_scores.append(scores)
                 averaged_scores = np.mean(np.array(all_image_scores), axis=0)
                 predicts = [(candidate_adjs[ind], float(scores[ind])) for ind in np.argsort(scores)[::-1]]
                 predicts.sort(key=lambda x: x[0])

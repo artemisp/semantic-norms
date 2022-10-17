@@ -55,10 +55,13 @@ def remove_ties(predictions):
             new_predictions.append((pred, score))
     return new_predictions
 
-def get_prediction(n_of_images, prompt, resort=False, DATASET='concept_properties'):
+def get_prediction(n_of_images, prompt, resort=True, DATASET='concept_properties', test=None):
     IMAGE_PATH = f"data/datasets/{DATASET}/images/bing_images/"
     EMBED_PATH = f"data/datasets/{DATASET}/images/image_embeddings/bing_embedding_l14/"
-    noun2prop = pickle.load(open(f"data/datasets/{DATASET}/noun2property/noun2prop.p", "rb"))
+    if DATASET == 'concept_properties' and test:
+        noun2prop = pickle.load(open(f"data/datasets/{DATASET}/noun2property/noun2prop_test.p", "rb"))
+    else:
+        noun2prop = pickle.load(open(f"data/datasets/{DATASET}/noun2property/noun2prop.p", "rb"))    
     candidate_adjs = []
     for noun, props in noun2prop.items():
         candidate_adjs += props
@@ -72,8 +75,8 @@ def get_prediction(n_of_images, prompt, resort=False, DATASET='concept_propertie
     clip_scores = {}
     noun2sorted_images = {}
     for noun in tqdm(all_nouns):
-        image_files = os.listdir(IMAGE_PATH + noun)
         if resort:
+            image_files = os.listdir(IMAGE_PATH + noun)
             sorted_image_files = sort_images(noun, image_files, EMBED_PATH)
         else:
             sorted_image_files = pickle.load(open(f'data/datasets/{DATASET}/images/noun2sorted_images.p', 'rb'))

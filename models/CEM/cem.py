@@ -18,9 +18,12 @@ def s(x):
 
 
 class CEM():
-    def __init__(self, dataset, model_concrete='clip', model_abstract='roberta', predicted_concreteness=False, recompute=False):
+    def __init__(self, dataset, model_concrete='clip', model_abstract='roberta', predicted_concreteness=False, recompute=True, test=None):
         
-        noun2prop = pickle.load(open('data/datasets/{}/noun2property/noun2prop.p'.format(dataset), "rb"))
+        if dataset == 'concept_properties' and test:
+            noun2prop = pickle.load(open(f"data/datasets/{dataset}/noun2property/noun2prop_test.p", "rb"))
+        else:
+            noun2prop = pickle.load(open(f"data/datasets/{dataset}/noun2property/noun2prop.p", "rb"))  
         candidate_adjs = []
         for noun, props in noun2prop.items():
             candidate_adjs += props
@@ -40,7 +43,7 @@ class CEM():
             
             if model_abstract == 'roberta':
                 from models.lm.mlm_multitok import LM
-                abstract_scores =  LM('roberta', dataset).prompt2noun2predicts['singular_generally']
+                abstract_scores =  LM('roberta', dataset, prompt_type='singular_generally').prompt2noun2predicts['singular_generally']
             
         if predicted_concreteness:
             prop2concretness = {w: c / 5 for w, c in pickle.load(open("data/concreteness/predicted_adjective2concreteness.p", "rb")).items()}

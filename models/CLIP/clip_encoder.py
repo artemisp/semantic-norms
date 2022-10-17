@@ -1,6 +1,5 @@
 import sys
 sys.path.insert(1, '../..')
-import eval
 import pickle
 from tqdm import tqdm
 import torch as th
@@ -10,7 +9,7 @@ import os
 import random
 from PIL import Image
 
-DATASET = "concept_properties" # "feature_norms", "memory_colors"
+DATASET = "feature_norms" # "concept_properties", "feature_norms", "memory_colors"
 
 device = "cuda" if th.cuda.is_available() else "cpu"
 clip_model_name = "ViT-L/14"
@@ -31,8 +30,9 @@ if __name__ == "__main__":
         image_files = os.listdir(IMAGE_PATH + noun)
         with th.no_grad():
             for image_file in image_files:
-                print(image_file)
                 image_id = image_file.split('_')[1].split('.')[0]
+                if noun + "_" + image_id + ".p" in os.listdir(EMBED_PATH):
+                    continue
                 try:
                     image_input = preprocess(Image.open(IMAGE_PATH + noun + "/" + image_file)).unsqueeze(0).to(device)
                     image_feature = model.encode_image(image_input).to(device)

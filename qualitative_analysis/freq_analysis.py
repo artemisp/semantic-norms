@@ -37,7 +37,7 @@ for dataset in ['feature_norms']:
 
     model2predicts = { "RoBERTa": roberta_predicts,"CLIP": clip_predicts, "CEM": combined_predicts, "CEM-Pred": pred_combined_predicts, "GPT-3 ": gpt3_predicts}
 
-    noun2prop2count = pickle.load(open('/nlp/data/yueyang/prototypicality/semantic_norms/semantic-norms/models/ngram/noun2prop2count_ngram_.p', 'rb'))
+    noun2prop2count = pickle.load(open('../models/ngram/noun2prop2count_ngram.p', 'rb'))
     for model, predicts in model2predicts.items():
         model_1 = []
         model_2 = []

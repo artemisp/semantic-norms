@@ -3,6 +3,7 @@ import sys
 sys.path.append('.')
 import pickle
 import eval
+import time
 
 
 parser = argparse.ArgumentParser(description='Provide the dataset and model on which you want to run the experiments on.')
@@ -22,6 +23,7 @@ if args.model not in ['random', 'glove', 'ngram', 'bert', 'roberta', 'gpt2', 'gp
 DATASET = args.dataset
 noun2prop = pickle.load(open('data/datasets/{}/noun2property/noun2prop{}.p'.format(DATASET, '_test' if DATASET=='concept_properties' else ''), 'rb'))
 
+start = time.time()
 if args.model == 'random':
     import random
     import numpy as np
@@ -42,6 +44,7 @@ elif args.model == 'bert':
     from models.lm.mlm_multitok import LM
     prompt2noun2predicts = LM(args.model, DATASET).prompt2noun2predicts
 
+
 elif args.model == 'roberta':
     from models.lm.mlm_multitok import LM
     prompt2noun2predicts = LM(args.model, DATASET).prompt2noun2predicts
@@ -53,6 +56,7 @@ elif args.model == 'gpt2':
 elif args.model == 'gpt3':
     from models.GPT3.gpt3 import GPT3
     noun2predicts = GPT3(DATASET).noun2predicts
+    
 elif args.model == 'vilt':
     from models.ViLT.vilt import ViLT
     prompt2noun2predicts = ViLT(dataset=DATASET).prompt2noun2predicts
@@ -69,6 +73,8 @@ elif args.model == 'cem':
 elif args.model == 'cem-pred':
     from models.CEM.cem import CEM
     noun2predicts = CEM(DATASET, predicted_concreteness=True).noun2predicts
+
+end = time.time()
 
 if args.model in ['bert', 'roberta', 'vilt', 'gpt2']:
     for prompt, noun2predicts in prompt2noun2predicts.items():
@@ -87,6 +93,9 @@ else:
     acc_5 = eval.evaluate_acc(noun2predicts, noun2prop, 5, True)
     r_5 = eval.evaluate_recall(noun2predicts, noun2prop, 5, True)
     r_10 = eval.evaluate_recall(noun2predicts, noun2prop, 10, True)
-    mrr = eval.evaluate_rank(noun2predicts, noun2prop, True)
+    if args.model not in ['gpt3']:
+        mrr = eval.evaluate_rank(noun2predicts, noun2prop, True)
+
+print(f"Time: {end-start} seconds")
 
 from pdb import set_trace; set_trace()

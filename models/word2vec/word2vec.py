@@ -17,8 +17,11 @@ def get_text_embeddings(sentences):
     return model.encode(sentences, batch_size = 32)
 
 class Word2Vec():
-    def __init__(self, dataset):
-        noun2prop = pickle.load(open(f"data/datasets/{dataset}/noun2property/noun2prop.p", "rb"))
+    def __init__(self, dataset, test=None):
+        if dataset == 'concept_properties' and test:
+             noun2prop = pickle.load(open(f"data/datasets/{dataset}/noun2property/noun2prop_test.p", "rb"))
+        else:
+            noun2prop = pickle.load(open(f"data/datasets/{dataset}/noun2property/noun2prop.p", "rb"))
         candidate_adjs = []
         for noun, props in noun2prop.items():
             candidate_adjs += props
