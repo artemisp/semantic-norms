@@ -159,7 +159,7 @@ def get_prompts(prompt_type, dataset=DATASET):
 	return noun2sent
 
 class LM():
-    def __init__(self, model_name, dataset, prompt_type=None, test=None):
+    def __init__(self, model_name, dataset, prompt_type='singular_generally', test=True):
         if model_name == 'bert':
             model_name = "bert-large-uncased"
         elif model_name == 'roberta':
@@ -208,7 +208,10 @@ class LM():
                     for it in range(iterations + 1):
                         orig_sentences_batch = orig_sentences[it * batch_size : min((it + 1) * batch_size, len(mask_sentences))]
                         mask_sentences_batch = mask_sentences[it * batch_size : min((it + 1) * batch_size, len(mask_sentences))]
-                        current_scores = LM.score_masked_batch(orig_sentences_batch, mask_sentences_batch)
+                        try:
+                            current_scores = LM.score_masked_batch(orig_sentences_batch, mask_sentences_batch)
+                        except:
+                            continue
                         scores += current_scores
                     predicts = [(candidate_adjs[ind], float(scores[ind])) for ind in np.argsort(scores)[::-1]]
                     predicts.sort(key=lambda x: x[0])

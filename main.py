@@ -22,7 +22,6 @@ if args.model not in ['random', 'glove', 'ngram', 'bert', 'roberta', 'gpt2', 'gp
 
 DATASET = args.dataset
 noun2prop = pickle.load(open('data/datasets/{}/noun2property/noun2prop{}.p'.format(DATASET, '_test' if DATASET=='concept_properties' else ''), 'rb'))
-
 start = time.time()
 if args.model == 'random':
     import random

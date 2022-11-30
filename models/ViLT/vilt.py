@@ -80,7 +80,7 @@ def tile(a, dim, n_tile):
     return torch.index_select(a, dim, order_index)
 
 class ViLT():
-    def __init__(self, dataset, test=None):
+    def __init__(self, dataset, prompt_type='plural',test=True):
         MLM = ViLTScorer()
         IMAGE_PATH = f"data/datasets/{dataset}/images/bing_images/"
         EMBED_PATH = f"data/datasets/{dataset}/images/image_embeddings/vilt_embedding/"
@@ -108,16 +108,21 @@ class ViLT():
                 for image_file in image_files:
                     if len(image_features) == n_of_images:
                         break
-                    try:
+                    if True:
                         image_id = image_file.split('_')[1].split('.')[0]
                         image_features.append(pickle.load(open(EMBED_PATH + noun + "_" + image_id + ".p", "rb")))
-                    except:
-                        continue
+                    
+                    # except:
+                    #     continue
             noun2image_features[noun] = image_features
         
-        prompt_types = ["plural_most", "singular_can_be", "singular_usually", "singular_generally", "singular", "plural_all", "plural_can_be", "plural_generally", "plural_some", "plural_usually", "plural"]
+        if not prompt_type:
+            prompt_types = ["plural_most", "singular_can_be", "singular_usually", "singular_generally", "singular", "plural_all", "plural_can_be", "plural_generally", "plural_some", "plural_usually", "plural"]
+            prompt_types = prompt_types[6:]
+        else:
+            prompt_types = [prompt_type]
         prompt2noun2predicts = {}
-        for pt in prompt_types[6:]:
+        for pt in prompt_types:
             print("Getting results for prompt: " + pt)
             noun2sent = get_prompts(prompt_type = pt, DATASET=dataset)
             noun2predicts = {noun: [] for noun in noun2prop}
@@ -152,8 +157,11 @@ class ViLT():
                     for it in range(iterations + 1):
                         orig_sentences_batch = orig_sentences[it * batch_size : min((it + 1) * batch_size, len(mask_sentences))]
                         mask_sentences_batch = mask_sentences[it * batch_size : min((it + 1) * batch_size, len(mask_sentences))]
-                        current_scores = MLM.score_masked_batch(orig_sentences_batch, mask_sentences_batch, image_feature)
-                        scores += current_scores
+                        try:
+                            current_scores = MLM.score_masked_batch(orig_sentences_batch, mask_sentences_batch, image_feature)
+                            scores += current_scores
+                        except:
+                            continue
                     all_image_scores.append(scores)
                 averaged_scores = np.mean(np.array(all_image_scores), axis=0)
                 predicts = [(candidate_adjs[ind], float(scores[ind])) for ind in np.argsort(scores)[::-1]]

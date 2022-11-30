@@ -6,6 +6,7 @@ sys.path.append('../..')
 import eval
 from difflib import SequenceMatcher
 from nltk.stem import WordNetLemmatizer
+import torch as th
 lemmatizer = WordNetLemmatizer()
 
 def similar(a, b):
@@ -18,16 +19,21 @@ def s(x):
 
 
 class CEM():
-    def __init__(self, dataset, model_concrete='clip', model_abstract='roberta', predicted_concreteness=False, recompute=True, test=None):
+    def __init__(self, dataset, model_concrete='clip', model_abstract='roberta', predicted_concreteness=False, recompute=True, test=True, similarity_metric='lms'):
         
         if dataset == 'concept_properties' and test:
             noun2prop = pickle.load(open(f"data/datasets/{dataset}/noun2property/noun2prop_test.p", "rb"))
+            noun2prop_all = pickle.load(open(f"data/datasets/{dataset}/noun2property/noun2prop.p", "rb"))
+            candidate_adjs = []
+            for noun, props in noun2prop_all.items():
+                candidate_adjs += props
+            candidate_adjs = list(set(candidate_adjs))
         else:
             noun2prop = pickle.load(open(f"data/datasets/{dataset}/noun2property/noun2prop.p", "rb"))  
-        candidate_adjs = []
-        for noun, props in noun2prop.items():
-            candidate_adjs += props
-        candidate_adjs = list(set(candidate_adjs))
+            candidate_adjs = []
+            for noun, props in noun2prop.items():
+                candidate_adjs += props
+            candidate_adjs = list(set(candidate_adjs))
 
         if not recompute:
             if model_concrete == 'clip':
@@ -50,17 +56,36 @@ class CEM():
         else:
             concreteness = {w: c / 5 for w, c in pickle.load(open("data/concreteness/word2concreteness.M.p", "rb")).items()}
             all_words = list(concreteness.keys())
-
+            
             prop2concretness = {}
-            for prop in tqdm(candidate_adjs):
-                if prop in concreteness:
-                    prop2concretness[prop] = concreteness[prop]
-                else:
-                    sims = []
-                    for word in all_words:
-                        sims.append((word, similar(word, prop)))
-                    sims.sort(key=lambda x: x[1], reverse=True)
-                    prop2concretness[prop] = concreteness[sims[0][0]]
+            if similarity_metric == 'glove':
+                from sentence_transformers import SentenceTransformer, util
+                device = "cuda" if th.cuda.is_available() else "cpu"
+                model = SentenceTransformer('average_word_embeddings_glove.6B.300d', device=device)
+                all_word_embeddings = model.encode(all_words, batch_size = 32)
+                for prop in tqdm(candidate_adjs):
+                    if prop in concreteness:
+                        prop2concretness[prop] = concreteness[prop]
+                    else:
+                        prop_embeddings = model.encode([prop])
+                        cosine_scores = []
+                        for i,word_emb in enumerate(all_word_embeddings):
+                            cosine_scores.append(util.cos_sim([word_emb], prop_embeddings))
+                        cosine_scores = util.cos_sim(all_word_embeddings, prop_embeddings)
+                        cosine_scores_avg = th.sum(cosine_scores, dim = 1)
+                        sorted_prop_index = th.argsort(cosine_scores_avg, descending=True)
+                        prop2concretness[prop] = concreteness[all_words[sorted_prop_index[0]]]
+                        
+            else:
+                for prop in tqdm(candidate_adjs):
+                    if prop in concreteness:
+                        prop2concretness[prop] = concreteness[prop]
+                    else:
+                        sims = []
+                        for word in all_words:
+                            sims.append((word, similar(word, prop)))
+                        sims.sort(key=lambda x: x[1], reverse=True)
+                        prop2concretness[prop] = concreteness[sims[0][0]]
 
 
         noun2predicts = {}
