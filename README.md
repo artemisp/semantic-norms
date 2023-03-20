@@ -9,9 +9,7 @@ pip install -r requirements.txt
 
 ## Data download
 
-Follow the [instructions](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) to install the AWS CLI to download the data.
-
-Run the download bash file from the projercts home directory 
+Run the download bash file from the project's home directory 
 ```
 bash download.sh
 ``` 
